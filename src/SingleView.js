@@ -1,11 +1,13 @@
 // SingleView.js
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { BASE_URL } from '../config';  // Assuming BASE_URL is defined
-import AddToCart from '../components/AddToCart';  // Import AddToCart component
+import { useCart } from '../state/CartProvider';  // Import the useCart hook
+import { BASE_URL } from '../config';  // Assuming the BASE_URL is defined here
 
 export default function SingleView() {
-  const { id } = useParams();  // Get the product ID from the URL
+  const { id } = useParams();
+  const { addToCart } = useCart();  // Destructure the addToCart function
+
   const [product, setProduct] = useState(null);
 
   const fetchProductById = async (id) => {
@@ -24,14 +26,17 @@ export default function SingleView() {
 
   if (!product) return <div className="loading-spinner">Loading...</div>;
 
+  // Handle adding the product to the cart
+  const handleAddToCart = () => {
+    addToCart(product);  // Add the current product to the cart
+  };
+
   return (
     <div className="single-product-view">
       <h2>{product.name}</h2>
       <p>{product.description}</p>
       <p>Price: ${product.price}</p>
-
-      {/* Add the AddToCart component */}
-      <AddToCart product={product} />  {/* Pass the product as a prop */}
+      <button onClick={handleAddToCart}>Add to Cart</button>  {/* Add to Cart button */}
     </div>
   );
 }

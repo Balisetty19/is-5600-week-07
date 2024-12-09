@@ -1,103 +1,66 @@
-import React, { useReducer, useContext } from 'react'
+// src/state/CartProvider.js
+import React, { createContext, useContext, useReducer } from 'react';
 
-// Initialize the context
-const CartContext = React.createContext()
+// Define action types
+const ADD_TO_CART = 'ADD_TO_CART';
+const REMOVE_FROM_CART = 'REMOVE_FROM_CART';
 
-// Definte the default state
+// Define the initial state
 const initialState = {
-  itemsById: {},
-  allItems: [],
-}
+  cartItems: [],
+};
 
-// Define reducer actions
-const ADD_ITEM = 'ADD_ITEM'
-const REMOVE_ITEM = 'REMOVE_ITEM'
-const UPDATE_ITEM_QUANTITY = 'UPDATE_ITEM_QUANTITY'
-
-// Define the reducer
+// Reducer function to manage cart state
 const cartReducer = (state, action) => {
-  const { payload } = action;
   switch (action.type) {
-    case ADD_ITEM:
-      console.log({state, action})
-      const newState = {
-        ...state,
-        itemsById: {
-          ...state.itemsById,
-          [payload._id]: {
-            ...payload,
-            quantity: state.itemsById[payload._id]
-              ? state.itemsById[payload._id].quantity + 1
-              : 1,
-          },
-        },
-        // Use `Set` to remove all duplicates
-        allItems: Array.from(new Set([...state.allItems, action.payload._id])),
-      };
-      return newState
-    case REMOVE_ITEM:
-      const updatedState = {
-        ...state,
-        itemsById: Object.entries(state.itemsById)
-          .filter(([key, value]) => key !== action.payload._id)
-          .reduce((obj, [key, value]) => {
-            obj[key] = value
-            return obj
-          }, {}),
-        allItems: state.allItems.filter(
-          (itemId) => itemId !== action.payload._id
-        ),
+    case ADD_TO_CART:
+      // Add product to cart or update quantity if it already exists
+      const updatedItems = [...state.cartItems];
+      const existingItem = updatedItems.find((item) => item.id === action.payload.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        updatedItems.push({ ...action.payload, quantity: 1 });
       }
-      return updatedState
-    
+      return { cartItems: updatedItems };
+
+    case REMOVE_FROM_CART:
+      // Remove product from cart
+      return {
+        cartItems: state.cartItems.filter((item) => item.id !== action.payload.id),
+      };
+
     default:
-      return state
+      return state;
   }
-}
+};
 
-// Define the provider
-const CartProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(cartReducer, initialState)
+// Create CartContext
+const CartContext = createContext();
 
-  // Remove an item from the cart
-  const removeFromCart = (product) => {
-    dispatch({ type: REMOVE_ITEM, payload: product })
-  }
+// CartProvider component
+export const CartProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(cartReducer, initialState);
 
-  // Add an item to the cart
+  // Add to cart
   const addToCart = (product) => {
-    dispatch({ type: ADD_ITEM, payload: product })
-  }
+    dispatch({ type: ADD_TO_CART, payload: product });
+  };
 
-  // todo Update the quantity of an item in the cart
-  const updateItemQuantity = (productId, quantity) => {
-    // todo
-  }
+  // Remove from cart
+  const removeFromCart = (product) => {
+    dispatch({ type: REMOVE_FROM_CART, payload: product });
+  };
 
-  // todo Get the total price of all items in the cart
-  const getCartTotal = () => {
-    // todo
-  }
-
-  const getCartItems = () => {
-    return state.allItems.map((itemId) => state.itemsById[itemId]) ?? [];
-  }
-
+  // Provide cart state and actions
   return (
-    <CartContext.Provider
-      value={{
-        cartItems: getCartItems(),
-        addToCart,
-        updateItemQuantity,
-        removeFromCart,
-        getCartTotal,
-      }}
-    >
+    <CartContext.Provider value={{ cartItems: state.cartItems, addToCart, removeFromCart }}>
       {children}
     </CartContext.Provider>
-  )
-}
+  );
+};
 
-const useCart = () => useContext(CartContext)
-
-export { CartProvider, useCart }
+// Custom hook to use cart state
+export const useCart = () => {
+  return useContext(CartContext);
+};
